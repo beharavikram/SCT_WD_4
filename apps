@@ -1,0 +1,73 @@
+document.addEventListener('DOMContentLoaded', () => {
+  const taskForm = document.getElementById('task-form');
+  const taskList = document.getElementById('task-list');
+
+  taskForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const title = document.getElementById('title').value;
+    const dueDate = document.getElementById('dueDate').value;
+
+    if (title === '') {
+      alert('Please enter a task title');
+      return;
+    }
+
+    try {
+      const response = await fetch('/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ title, dueDate })
+      });
+
+      const data = await response.json();
+      addTaskToList(data);
+      taskForm.reset();
+    } catch (err) {
+      console.error('Error:', err);
+    }
+  });
+
+  async function fetchTasks() {
+    try {
+      const response = await fetch('/tasks');
+      const data = await response.json();
+      data.forEach(task => {
+        addTaskToList(task);
+      });
+    } catch (err) {
+      console.error('Error:', err);
+    }
+  }
+
+  function addTaskToList(task) {
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <span>${task.title}</span>
+      <span>${task.dueDate ? new Date(task.dueDate).toLocaleString() : ''}</span>
+      <button class="delete" data-id="${task._id}">Delete</button>
+    `;
+    li.classList.add('task-item');
+    if (task.completed) {
+      li.classList.add('completed');
+    }
+
+    const deleteButton = li.querySelector('.delete');
+    deleteButton.addEventListener('click', async () => {
+      try {
+        await fetch(`/tasks/${task._id}`, {
+          method: 'DELETE'
+        });
+        li.remove();
+      } catch (err) {
+        console.error('Error:', err);
+      }
+    });
+
+    taskList.appendChild(li);
+  }
+
+  fetchTasks();
+});
